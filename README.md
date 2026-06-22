@@ -130,35 +130,24 @@ npm run service:uninstall
 
 ## 部署到雲端
 
-電腦關機也要繼續刷新時，需要把網站和官方頁抓取流程放到雲端機器。對你這個 Team Coding Plan 用量來說，不能只用 GitHub Pages，也不能只靠 API key，因為 BigModel 官方用量是用登入後的 Web 身分查。
+電腦關機也要繼續刷新時，可以用 GitHub Pages + GitHub Actions。GitHub Actions 每小時開一次臨時瀏覽器，使用 GitHub Secret 裡保存的 BigModel 瀏覽器登入狀態，抓官方用量頁後重新部署 Pages。
 
 最接近 `https://zming061031.github.io/stockvue/dashboard.html` 的做法是：
 
-- GitHub Pages：放永久網站前端，網址會像 `https://zming061031.github.io/bigmodel-usage-monitor/dashboard.html`
-- Windows 雲端 VM：跑後端和每小時官方頁自動抓取
+- GitHub Pages：永久網站前端，網址會像 `https://zming061031.github.io/bigmodel-usage-monitor/dashboard.html`
+- GitHub Actions：每小時自動抓 BigModel 官方頁並更新 `usage-state.json`
 
 完整步驟見 [PERMANENT_SITE.md](./PERMANENT_SITE.md)。
 
-雲端 VM 可用一鍵安裝：
+設定 BigModel 瀏覽器登入狀態 Secret：
 
 ```powershell
-npm run permanent:install -OpenFirewall
+npm run export:storage-state
+Get-Content -LiteralPath "data\bigmodel-storage-state.json.gz.b64" -Raw |
+  gh secret set BIGMODEL_STORAGE_STATE_GZ_B64 --repo zming061031/bigmodel-usage-monitor
 ```
 
-雲端 `.env` 建議設定：
-
-```env
-HOST=0.0.0.0
-PORT=5179
-PUBLIC_QUERY_ONLY=true
-PUBLIC_USAGE_READ=true
-DASHBOARD_USER=admin
-DASHBOARD_PASSWORD=change_this_to_a_strong_password
-USAGE_STATE_FILE=.\data\usage-state.json
-LIVE_POLL_MS=3600000
-```
-
-第一次仍要在 VM 內跑一次 `npm run capture:web-session` 登入 BigModel。之後由排程每小時自動刷新。Docker/Render/Railway 可以跑網站後端，但不含官方登入瀏覽器抓取流程；這個 Team 用量案例請優先用 Windows 雲端 VM。
+如果 BigModel 讓 session 過期，重新跑上面兩行即可更新 Secret。
 
 ## 後端端點
 

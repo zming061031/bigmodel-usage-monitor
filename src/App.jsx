@@ -16,6 +16,9 @@ const EMPTY_STATE = {
   lastError: null
 };
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+const STATIC_USAGE_URL =
+  import.meta.env.VITE_STATIC_USAGE_URL ||
+  (import.meta.env.PROD && !API_BASE_URL ? './usage-state.json' : '');
 
 export default function App() {
   const [state, setState] = useState(EMPTY_STATE);
@@ -26,7 +29,7 @@ export default function App() {
     if (!silent) setLoading(true);
 
     try {
-      const response = await fetch(apiUrl('/api/usage'), { cache: 'no-store' });
+      const response = await fetch(usageUrl(), { cache: 'no-store' });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
       setState(payload);
@@ -122,6 +125,11 @@ export default function App() {
       )}
     </main>
   );
+}
+
+function usageUrl() {
+  if (API_BASE_URL) return apiUrl('/api/usage');
+  return STATIC_USAGE_URL || '/api/usage';
 }
 
 function apiUrl(path) {

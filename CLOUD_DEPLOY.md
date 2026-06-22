@@ -1,8 +1,10 @@
 # Cloud deployment
 
-This project can run in the cloud, but the working Team Coding Plan quota flow is not static hosting and not API-key-only.
+This project can run in the cloud, but the working Team Coding Plan quota flow is not API-key-only.
 
-For your Team Coding Plan key, BigModel returned `当前用户不存在coding plan` from the monitor API. The official usage page works because it uses the logged-in BigModel web session in a browser. So the reliable cloud setup is:
+Preferred no-VM mode: GitHub Pages plus scheduled GitHub Actions. See [PERMANENT_SITE.md](./PERMANENT_SITE.md).
+
+For your Team Coding Plan key, BigModel returned `当前用户不存在coding plan` from the monitor API. The official usage page works because it uses the logged-in BigModel web session in a browser. The Windows VM setup below is a fallback when GitHub Actions browser session capture stops working.
 
 1. A private cloud Windows VM runs the monitor website.
 2. The same VM keeps a logged-in Edge/Chrome profile for `https://bigmodel.cn/coding-plan/team/usage-stats`.

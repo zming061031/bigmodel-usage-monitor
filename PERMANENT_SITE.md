@@ -6,47 +6,34 @@ Use this to make a permanent site similar to:
 https://zming061031.github.io/stockvue/dashboard.html
 ```
 
-For BigModel Coding Plan usage, the permanent setup has two parts:
+For BigModel Coding Plan usage, the preferred setup is now GitHub Pages plus GitHub Actions:
 
-- GitHub Pages hosts the public dashboard frontend.
-- A private Windows cloud VM runs the backend and the hourly BigModel official-page capture.
+- GitHub Pages hosts the dashboard frontend.
+- GitHub Actions runs every hour, opens a temporary Playwright browser, reads the official BigModel usage page with your saved browser session, writes `usage-state.json`, and redeploys Pages.
 
-GitHub Pages cannot run the BigModel browser login/capture by itself. The VM is required because BigModel usage data comes from the logged-in official usage page.
+No always-on Windows VM is required. The tradeoff is that the saved BigModel browser session may expire or may be rejected by BigModel from GitHub's runner IP; if that happens, export and update the GitHub Secret again.
 
-## 1. Cloud VM backend
+## 1. Export BigModel browser session
 
-On the Windows cloud VM:
-
-```powershell
-cd C:\Users\Administrator\bigmodel-usage-monitor
-npm run permanent:install -OpenFirewall
-```
-
-The script will:
-
-- create `.env`
-- build the frontend
-- install the website service
-- install the hourly capture scheduled task
-- make `/api/usage` publicly readable
-- keep write/import endpoints protected by `DASHBOARD_PASSWORD`
-
-Then run once:
+On your own PC:
 
 ```powershell
-npm run capture:web-session
+cd C:\Users\chium\bigmodel-usage-monitor
+npm run export:storage-state
 ```
 
-Log in to BigModel in the browser window. After this first login, the VM will keep using the same browser profile for hourly captures.
-
-Your backend URL is one of these:
+Do not paste your account or password into chat. The script opens a browser; log in there if needed. It saves a compressed secret payload locally under:
 
 ```text
-http://YOUR_VM_IP:5179
-https://your-domain.example.com
+data\bigmodel-storage-state.json.gz.b64
 ```
 
-Use HTTPS with a domain/reverse proxy if possible. Plain HTTP works for testing.
+Set it as a GitHub Secret:
+
+```powershell
+Get-Content -LiteralPath "data\bigmodel-storage-state.json.gz.b64" -Raw |
+  gh secret set BIGMODEL_STORAGE_STATE_GZ_B64 --repo zming061031/bigmodel-usage-monitor
+```
 
 ## 2. GitHub Pages frontend
 
@@ -61,20 +48,7 @@ In GitHub:
 1. Push this project to a GitHub repository.
 2. Go to `Settings -> Pages`.
 3. Set Source to `GitHub Actions`.
-4. Go to `Settings -> Secrets and variables -> Actions -> Variables`.
-5. Add repository variable:
-
-```text
-VITE_API_BASE_URL=http://YOUR_VM_IP:5179
-```
-
-If you use a domain:
-
-```text
-VITE_API_BASE_URL=https://your-domain.example.com
-```
-
-Push to `main`. GitHub Actions will build and publish the site.
+4. Push to `main`, or manually run `Deploy GitHub Pages`.
 
 The dashboard URL will be:
 
@@ -90,19 +64,19 @@ https://zming061031.github.io/bigmodel-usage-monitor/dashboard.html
 
 ## Automation behavior
 
-- BigModel capture: every 1 hour on the Windows cloud VM.
+- BigModel capture: every 1 hour in GitHub Actions.
 - Dashboard data reload: every 1 hour in the browser.
 - GitHub Pages deployment: every push to `main`.
 - API key/Header input: not shown on the website.
 
 ## Security
 
-- `/api/usage` is public and contains usage data only.
-- `/api/query-official-payload` is protected by dashboard Basic Auth.
-- BigModel Cookie/login state is stored only in the VM browser profile:
+- `usage-state.json` is public and contains usage data only.
+- `BIGMODEL_STORAGE_STATE_GZ_B64` is a GitHub Secret and contains BigModel browser login state. Rotate it by rerunning `npm run export:storage-state`.
+- Local BigModel browser login state is stored under:
 
 ```text
 %LOCALAPPDATA%\bigmodel-usage-monitor\browser-profile
 ```
 
-Treat the VM as sensitive.
+Treat both the GitHub Secret and the local profile as sensitive.

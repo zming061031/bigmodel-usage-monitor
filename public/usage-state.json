@@ -1,0 +1,21 @@
+{
+  "config": {
+    "defaultBaseUrl": "https://bigmodel.cn",
+    "publicQueryOnly": true,
+    "publicUsageRead": true,
+    "clientPollMs": 3600000,
+    "fiveHourRefreshMs": 18000000,
+    "weeklyRefreshMs": 604800000,
+    "staticRefreshMs": 3600000,
+    "accountCount": 0,
+    "accounts": [],
+    "queryMode": "github-pages-static"
+  },
+  "snapshots": [],
+  "isRefreshing": false,
+  "lastRefreshAt": null,
+  "lastRefreshReason": "waiting-for-github-actions-capture",
+  "nextFiveHourRefreshAt": null,
+  "nextWeeklyRefreshAt": null,
+  "lastError": null
+}
