@@ -1,0 +1,32 @@
+{
+  "name": "bigmodel-usage-monitor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c blue,green \"node server/index.js\" \"vite --host 127.0.0.1\"",
+    "build": "vite build && node scripts/copy-dashboard-html.mjs",
+    "start": "node server/index.js",
+    "capture:web-session": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/capture-web-session.ps1",
+    "capture:install": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-capture-task.ps1",
+    "diagnose:key": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/diagnose-key.ps1",
+    "permanent:install": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-permanent-cloud.ps1",
+    "service:install": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-startup-task.ps1",
+    "service:start": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-monitor.ps1",
+    "service:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stop-monitor.ps1",
+    "service:status": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/status-monitor.ps1",
+    "service:uninstall": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/uninstall-startup-task.ps1"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "lucide-react": "^0.562.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.1.2",
+    "concurrently": "^9.2.1",
+    "vite": "^7.3.0"
+  }
+}

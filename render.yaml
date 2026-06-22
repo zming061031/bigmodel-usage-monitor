@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: bigmodel-usage-monitor
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    healthCheckPath: /api/health
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: PUBLIC_QUERY_ONLY
+        value: true
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: BIGMODEL_API_BASE
+        value: https://bigmodel.cn
+      - key: BIGMODEL_AUTH_SCHEME
+        value: Bearer
+      - key: LIVE_POLL_MS
+        value: 3600000
+      - key: FIVE_HOUR_REFRESH_MS
+        value: 18000000
+      - key: WEEKLY_REFRESH_MS
+        value: 604800000
+      - key: DASHBOARD_USER
+        value: admin
+      - key: DASHBOARD_PASSWORD
+        sync: false
+      - key: USAGE_STATE_FILE
+        value: /app/data/usage-state.json
