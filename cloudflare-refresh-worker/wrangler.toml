@@ -1,0 +1,12 @@
+name = "bigmodel-usage-refresh"
+main = "src/worker.js"
+compatibility_date = "2026-06-23"
+
+[triggers]
+crons = ["7 * * * *"]
+
+[vars]
+GITHUB_OWNER = "zming061031"
+GITHUB_REPO = "bigmodel-usage-monitor"
+GITHUB_WORKFLOW_ID = "deploy-pages.yml"
+GITHUB_REF = "main"

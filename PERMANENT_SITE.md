@@ -69,10 +69,28 @@ https://zming061031.github.io/bigmodel-usage-monitor/dashboard.html
 - GitHub Pages deployment: every push to `main`.
 - API key/Header input: not shown on the website.
 
+## More Reliable Cron
+
+GitHub's native `schedule` can be delayed or skipped. For more reliable hourly triggering without a VM, deploy the included Cloudflare Worker cron trigger:
+
+```powershell
+npm run cloudflare:install
+```
+
+This requires logging in to Cloudflare once. The Worker stores a GitHub token as a Cloudflare secret and calls GitHub's `workflow_dispatch` API every hour. GitHub's own schedule remains enabled as a fallback.
+
+Worker files:
+
+```text
+cloudflare-refresh-worker/wrangler.toml
+cloudflare-refresh-worker/src/worker.js
+```
+
 ## Security
 
 - `usage-state.json` is public and contains usage data only.
 - `BIGMODEL_STORAGE_STATE_GZ_B64` is a GitHub Secret and contains BigModel browser login state. Rotate it by rerunning `npm run export:storage-state`.
+- Cloudflare Worker mode stores a GitHub workflow-dispatch token as a Cloudflare secret. Do not expose it publicly.
 - Local BigModel browser login state is stored under:
 
 ```text

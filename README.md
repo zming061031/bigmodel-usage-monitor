@@ -149,6 +149,14 @@ Get-Content -LiteralPath "data\bigmodel-storage-state.json.gz.b64" -Raw |
 
 如果 BigModel 讓 session 過期，重新跑上面兩行即可更新 Secret。
 
+如果 GitHub 自帶 `schedule` 沒有準時跑，可以部署 Cloudflare Worker Cron 觸發器，不需要 VM：
+
+```powershell
+npm run cloudflare:install
+```
+
+這會用 Cloudflare Cron 每小時呼叫 GitHub Actions 的 `workflow_dispatch`。GitHub 自帶 schedule 仍會保留作為備用。
+
 ## 後端端點
 
 - `GET /api/usage`：目前所有 key 的快取用量

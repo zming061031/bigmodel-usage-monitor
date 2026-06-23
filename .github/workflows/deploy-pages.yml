@@ -7,6 +7,11 @@ on:
   schedule:
     - cron: "7,22,37,52 * * * *"
   workflow_dispatch:
+    inputs:
+      source:
+        description: "Trigger source"
+        required: false
+        default: "manual"
 
 permissions:
   contents: read
@@ -26,6 +31,9 @@ jobs:
       BIGMODEL_STORAGE_STATE_GZ_B64: ${{ secrets.BIGMODEL_STORAGE_STATE_GZ_B64 }}
       BIGMODEL_STORAGE_STATE_B64: ${{ secrets.BIGMODEL_STORAGE_STATE_B64 }}
     steps:
+      - name: Trigger info
+        run: echo "trigger=${{ github.event_name }} source=${{ inputs.source || 'none' }}"
+
       - name: Checkout
         uses: actions/checkout@v4
 

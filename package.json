@@ -12,6 +12,7 @@
     "capture:install": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-capture-task.ps1",
     "diagnose:key": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/diagnose-key.ps1",
     "export:storage-state": "node scripts/export-bigmodel-storage-state.mjs",
+    "cloudflare:install": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-cloudflare-cron.ps1",
     "permanent:install": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-permanent-cloud.ps1",
     "service:install": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-startup-task.ps1",
     "service:start": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-monitor.ps1",
