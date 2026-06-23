@@ -1,3 +1,8 @@
+param(
+  [switch]$Verify,
+  [string]$WorkerUrl = "https://bigmodel-usage-refresh.zming061031.workers.dev"
+)
+
 $ErrorActionPreference = "Stop"
 
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
@@ -19,9 +24,47 @@ try {
   [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($refreshBytes)
   $refreshToken = [Convert]::ToBase64String($refreshBytes)
 
-  $githubToken | npx wrangler secret put GITHUB_TOKEN
-  $refreshToken | npx wrangler secret put REFRESH_TOKEN
+  $secretFile = Join-Path ([System.IO.Path]::GetTempPath()) ("bigmodel-cloudflare-secrets-" + [Guid]::NewGuid().ToString("N") + ".json")
+  try {
+    @{
+      GITHUB_TOKEN = $githubToken
+      REFRESH_TOKEN = $refreshToken
+    } | ConvertTo-Json -Compress | Set-Content -LiteralPath $secretFile -Encoding UTF8 -NoNewline
+
+    npx wrangler secret bulk $secretFile
+  } finally {
+    if (Test-Path -LiteralPath $secretFile) {
+      Remove-Item -LiteralPath $secretFile -Force
+    }
+  }
+
   npx wrangler deploy
+
+  if ($Verify) {
+    $triggerUri = [Uri]::new(([Uri]::new($WorkerUrl)), "/trigger").AbsoluteUri
+    $triggerResponse = $null
+    $lastError = $null
+
+    for ($attempt = 1; $attempt -le 6; $attempt++) {
+      try {
+        $triggerResponse = Invoke-RestMethod `
+          -Method Post `
+          -Uri $triggerUri `
+          -Headers @{ "x-refresh-token" = $refreshToken }
+        break
+      } catch {
+        $lastError = $_
+        Start-Sleep -Seconds 10
+      }
+    }
+
+    if (-not $triggerResponse) {
+      throw $lastError
+    }
+
+    "Manual trigger verification:"
+    $triggerResponse | ConvertTo-Json -Depth 10
+  }
 
   "Cloudflare cron worker deployed."
   "It triggers GitHub Actions every hour at minute 7."
