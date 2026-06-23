@@ -12,6 +12,7 @@ const outputPath = path.resolve(
 );
 const officialUrl = 'https://bigmodel.cn/coding-plan/team/usage-stats';
 const timeoutMs = Number(process.env.PAGES_CAPTURE_TIMEOUT_MS || 180_000);
+const fiveMinutesMs = 5 * 60 * 1000;
 const oneHourMs = 60 * 60 * 1000;
 const fiveHoursMs = 5 * oneHourMs;
 const oneWeekMs = 7 * 24 * oneHourMs;
@@ -143,7 +144,7 @@ function createState(snapshot) {
       defaultBaseUrl: 'https://bigmodel.cn',
       publicQueryOnly: true,
       publicUsageRead: true,
-      clientPollMs: oneHourMs,
+      clientPollMs: fiveMinutesMs,
       fiveHourRefreshMs: fiveHoursMs,
       weeklyRefreshMs: oneWeekMs,
       staticRefreshMs: oneHourMs,
@@ -174,7 +175,7 @@ function createEmptyState(reason) {
       defaultBaseUrl: 'https://bigmodel.cn',
       publicQueryOnly: true,
       publicUsageRead: true,
-      clientPollMs: oneHourMs,
+      clientPollMs: fiveMinutesMs,
       fiveHourRefreshMs: fiveHoursMs,
       weeklyRefreshMs: oneWeekMs,
       staticRefreshMs: oneHourMs,

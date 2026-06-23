@@ -84,7 +84,9 @@ export default function App() {
           <h1>BigModel 用量監控</h1>
           <p className="refresh-line">
             狀態：{primarySnapshot ? statusLabel(primarySnapshot.status) : '等待官方頁資料'} · 上次刷新：
-            {formatDateTime(state?.lastRefreshAt) || '尚未刷新'} · 網站每 {formatInterval(pollMs)} 自動刷新
+            {formatDateTime(state?.lastRefreshAt) || '尚未刷新'} · 雲端每{' '}
+            {formatInterval(state?.config?.staticRefreshMs || ONE_HOUR_MS)} 自動刷新 · 頁面每{' '}
+            {formatInterval(pollMs)} 檢查更新
           </p>
         </div>
         <button className="icon-button" onClick={() => loadUsage()} disabled={loading} type="button">
@@ -128,12 +130,16 @@ export default function App() {
 }
 
 function usageUrl() {
-  if (API_BASE_URL) return apiUrl('/api/usage');
-  return STATIC_USAGE_URL || '/api/usage';
+  return withCacheBuster(API_BASE_URL ? apiUrl('/api/usage') : STATIC_USAGE_URL || '/api/usage');
 }
 
 function apiUrl(path) {
   return `${API_BASE_URL}${path}`;
+}
+
+function withCacheBuster(url) {
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}t=${Date.now()}`;
 }
 
 function QuotaCard({ card }) {
