@@ -9,7 +9,7 @@ https://zming061031.github.io/stockvue/dashboard.html
 For BigModel Coding Plan usage, the preferred setup is now GitHub Pages plus GitHub Actions:
 
 - GitHub Pages hosts the dashboard frontend.
-- GitHub Actions runs every hour, opens a temporary Playwright browser, reads the official BigModel usage page with your saved browser session, writes `usage-state.json`, and redeploys Pages.
+- GitHub Actions is scheduled every 15 minutes to compensate for GitHub's non-guaranteed cron timing. In practice this keeps the dashboard refreshed within roughly one hour, opens a temporary Playwright browser, reads the official BigModel usage page with your saved browser session, writes `usage-state.json`, and redeploys Pages.
 
 No always-on Windows VM is required. The tradeoff is that the saved BigModel browser session may expire or may be rejected by BigModel from GitHub's runner IP; if that happens, export and update the GitHub Secret again.
 
@@ -64,7 +64,7 @@ https://zming061031.github.io/bigmodel-usage-monitor/dashboard.html
 
 ## Automation behavior
 
-- BigModel capture: every 1 hour in GitHub Actions.
+- BigModel capture: scheduled every 15 minutes in GitHub Actions so skipped/delayed runs still usually refresh within one hour.
 - Dashboard data reload: every 1 hour in the browser.
 - GitHub Pages deployment: every push to `main`.
 - API key/Header input: not shown on the website.

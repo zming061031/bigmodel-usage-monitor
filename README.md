@@ -130,12 +130,12 @@ npm run service:uninstall
 
 ## 部署到雲端
 
-電腦關機也要繼續刷新時，可以用 GitHub Pages + GitHub Actions。GitHub Actions 每小時開一次臨時瀏覽器，使用 GitHub Secret 裡保存的 BigModel 瀏覽器登入狀態，抓官方用量頁後重新部署 Pages。
+電腦關機也要繼續刷新時，可以用 GitHub Pages + GitHub Actions。GitHub Actions 已改成每 15 分鐘排程一次，用來抵消 GitHub cron 可能延遲或漏跑的情況；實際目標是讓網站大約一小時內一定更新。每次執行會開臨時瀏覽器，使用 GitHub Secret 裡保存的 BigModel 瀏覽器登入狀態，抓官方用量頁後重新部署 Pages。
 
 最接近 `https://zming061031.github.io/stockvue/dashboard.html` 的做法是：
 
 - GitHub Pages：永久網站前端，網址會像 `https://zming061031.github.io/bigmodel-usage-monitor/dashboard.html`
-- GitHub Actions：每小時自動抓 BigModel 官方頁並更新 `usage-state.json`
+- GitHub Actions：每 15 分鐘嘗試抓 BigModel 官方頁並更新 `usage-state.json`，確保約一小時內會刷新
 
 完整步驟見 [PERMANENT_SITE.md](./PERMANENT_SITE.md)。
 
