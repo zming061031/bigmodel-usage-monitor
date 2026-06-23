@@ -28,7 +28,7 @@ jobs:
     timeout-minutes: 12
     env:
       HAS_BIGMODEL_STORAGE: ${{ secrets.BIGMODEL_STORAGE_STATE_GZ_B64 != '' || secrets.BIGMODEL_STORAGE_STATE_B64 != '' }}
-      HAS_SESSION_ROTATION_TOKEN: ${{ secrets.SESSION_ROTATION_TOKEN != '' }}
+      HAS_CLOUDFLARE_STORAGE_TOKEN: ${{ secrets.CLOUDFLARE_REFRESH_TOKEN != '' }}
       BIGMODEL_STORAGE_STATE_GZ_B64: ${{ secrets.BIGMODEL_STORAGE_STATE_GZ_B64 }}
       BIGMODEL_STORAGE_STATE_B64: ${{ secrets.BIGMODEL_STORAGE_STATE_B64 }}
     steps:
@@ -47,20 +47,40 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Download latest BigModel login state
+        if: ${{ env.HAS_CLOUDFLARE_STORAGE_TOKEN == 'true' }}
+        env:
+          CLOUDFLARE_REFRESH_TOKEN: ${{ secrets.CLOUDFLARE_REFRESH_TOKEN }}
+          STORAGE_STATE_URL: https://bigmodel-usage-refresh.zming061031.workers.dev/storage-state
+          STORAGE_STATE_FILE: ${{ runner.temp }}/bigmodel-storage-state.input.gz.b64
+        run: |
+          if curl -fsS \
+            -H "x-refresh-token: $CLOUDFLARE_REFRESH_TOKEN" \
+            "$STORAGE_STATE_URL" \
+            -o "$STORAGE_STATE_FILE"; then
+            echo "BIGMODEL_STORAGE_STATE_GZ_B64_FILE=$STORAGE_STATE_FILE" >> "$GITHUB_ENV"
+            echo "HAS_BIGMODEL_STORAGE=true" >> "$GITHUB_ENV"
+            echo "Downloaded latest BigModel login state from Cloudflare KV."
+          else
+            rm -f "$STORAGE_STATE_FILE"
+            echo "Cloudflare KV login state is unavailable; falling back to GitHub secret."
+          fi
+
       - name: Install browser
-        if: ${{ env.HAS_BIGMODEL_STORAGE == 'true' }}
+        if: ${{ env.HAS_BIGMODEL_STORAGE == 'true' || env.HAS_CLOUDFLARE_STORAGE_TOKEN == 'true' }}
         run: npx playwright install --with-deps chromium
 
       - name: Capture BigModel usage
-        if: ${{ env.HAS_BIGMODEL_STORAGE == 'true' }}
+        if: ${{ env.HAS_BIGMODEL_STORAGE == 'true' || env.HAS_CLOUDFLARE_STORAGE_TOKEN == 'true' }}
         run: npm run capture:pages
         env:
           PAGES_REFRESHED_STORAGE_STATE_GZ_B64_PATH: ${{ runner.temp }}/bigmodel-storage-state.gz.b64
 
-      - name: Rotate BigModel login state
-        if: ${{ env.HAS_BIGMODEL_STORAGE == 'true' && env.HAS_SESSION_ROTATION_TOKEN == 'true' }}
+      - name: Upload refreshed BigModel login state
+        if: ${{ env.HAS_CLOUDFLARE_STORAGE_TOKEN == 'true' }}
         env:
-          GH_TOKEN: ${{ secrets.SESSION_ROTATION_TOKEN }}
+          CLOUDFLARE_REFRESH_TOKEN: ${{ secrets.CLOUDFLARE_REFRESH_TOKEN }}
+          STORAGE_STATE_URL: https://bigmodel-usage-refresh.zming061031.workers.dev/storage-state
           REFRESHED_STORAGE_STATE: ${{ runner.temp }}/bigmodel-storage-state.gz.b64
         run: |
           if [ ! -s "$REFRESHED_STORAGE_STATE" ]; then
@@ -68,16 +88,21 @@ jobs:
             exit 0
           fi
 
-          gh secret set BIGMODEL_STORAGE_STATE_GZ_B64 \
-            --repo "$GITHUB_REPOSITORY" \
-            < "$REFRESHED_STORAGE_STATE"
+          curl -fsS \
+            -X PUT \
+            -H "x-refresh-token: $CLOUDFLARE_REFRESH_TOKEN" \
+            --data-binary "@$REFRESHED_STORAGE_STATE" \
+            "$STORAGE_STATE_URL" \
+            > /dev/null
 
           rm -f "$REFRESHED_STORAGE_STATE"
-          echo "Rotated BigModel login state secret."
+          echo "Uploaded refreshed BigModel login state to Cloudflare KV."
 
       - name: Remove refreshed login state temp file
         if: ${{ always() }}
-        run: rm -f "${{ runner.temp }}/bigmodel-storage-state.gz.b64"
+        run: |
+          rm -f "${{ runner.temp }}/bigmodel-storage-state.gz.b64"
+          rm -f "${{ runner.temp }}/bigmodel-storage-state.input.gz.b64"
 
       - name: Build
         run: npm run build

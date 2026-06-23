@@ -22,9 +22,10 @@ try {
 
   $refreshBytes = New-Object byte[] 32
   [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($refreshBytes)
-  $refreshToken = [Convert]::ToBase64String($refreshBytes)
+  $refreshToken = [Convert]::ToBase64String($refreshBytes).TrimEnd('=').Replace('+', '-').Replace('/', '_')
 
   $secretFile = Join-Path ([System.IO.Path]::GetTempPath()) ("bigmodel-cloudflare-secrets-" + [Guid]::NewGuid().ToString("N") + ".json")
+  $refreshTokenFile = Join-Path ([System.IO.Path]::GetTempPath()) ("bigmodel-cloudflare-refresh-token-" + [Guid]::NewGuid().ToString("N") + ".txt")
   try {
     @{
       GITHUB_TOKEN = $githubToken
@@ -32,13 +33,31 @@ try {
     } | ConvertTo-Json -Compress | Set-Content -LiteralPath $secretFile -Encoding UTF8 -NoNewline
 
     npx wrangler secret bulk $secretFile
+
+    Set-Content -LiteralPath $refreshTokenFile -Value $refreshToken -Encoding ASCII -NoNewline
+    Get-Content -Raw -LiteralPath $refreshTokenFile | gh secret set CLOUDFLARE_REFRESH_TOKEN --repo "zming061031/bigmodel-usage-monitor"
   } finally {
     if (Test-Path -LiteralPath $secretFile) {
       Remove-Item -LiteralPath $secretFile -Force
     }
+    if (Test-Path -LiteralPath $refreshTokenFile) {
+      Remove-Item -LiteralPath $refreshTokenFile -Force
+    }
   }
 
   npx wrangler deploy
+
+  $storageStatePath = Join-Path $Root "data\bigmodel-storage-state.json.gz.b64"
+  if (Test-Path -LiteralPath $storageStatePath) {
+    Invoke-RestMethod `
+      -Method Put `
+      -Uri ([Uri]::new(([Uri]::new($WorkerUrl)), "/storage-state").AbsoluteUri) `
+      -Headers @{ "x-refresh-token" = $refreshToken } `
+      -InFile $storageStatePath `
+      -ContentType "text/plain" | Out-Null
+
+    "Seeded Cloudflare KV with BigModel login state."
+  }
 
   if ($Verify) {
     $triggerUri = [Uri]::new(([Uri]::new($WorkerUrl)), "/trigger").AbsoluteUri
@@ -68,7 +87,7 @@ try {
 
   "Cloudflare cron worker deployed."
   "It triggers GitHub Actions every hour at minute 7."
-  "Manual trigger token was generated and stored as REFRESH_TOKEN."
+  "Refresh token was stored in Cloudflare REFRESH_TOKEN and GitHub CLOUDFLARE_REFRESH_TOKEN."
 } finally {
   Pop-Location
 }

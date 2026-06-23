@@ -136,7 +136,7 @@ npm run service:uninstall
 
 - GitHub Pages：永久網站前端，網址會像 `https://zming061031.github.io/bigmodel-usage-monitor/dashboard.html`
 - GitHub Actions：被 Cloudflare 每小時觸發，抓 BigModel 官方頁並更新 `usage-state.json`
-- Secret rotation：抓取成功後自動刷新 `BIGMODEL_STORAGE_STATE_GZ_B64`，盡量延長官方登入狀態
+- Secret rotation：抓取成功後自動刷新 Cloudflare KV 裡的 BigModel 登入狀態，盡量延長官方登入狀態
 
 完整步驟見 [PERMANENT_SITE.md](./PERMANENT_SITE.md)。
 
@@ -147,11 +147,10 @@ npm run export:storage-state
 Get-Content -LiteralPath "data\bigmodel-storage-state.json.gz.b64" -Raw |
   gh secret set BIGMODEL_STORAGE_STATE_GZ_B64 --repo zming061031/bigmodel-usage-monitor
 
-gh auth token |
-  gh secret set SESSION_ROTATION_TOKEN --repo zming061031/bigmodel-usage-monitor
+npm run cloudflare:install
 ```
 
-`SESSION_ROTATION_TOKEN` 只用來讓 GitHub Actions 在抓取成功後更新 `BIGMODEL_STORAGE_STATE_GZ_B64`。如果 BigModel 強制登出或要求重新驗證，重新跑 `npm run export:storage-state` 並更新 `BIGMODEL_STORAGE_STATE_GZ_B64` 即可。
+`npm run cloudflare:install` 會同步 Cloudflare Worker 的 `REFRESH_TOKEN` 和 GitHub 的 `CLOUDFLARE_REFRESH_TOKEN`，並在本機有 `data\bigmodel-storage-state.json.gz.b64` 時先寫入 Cloudflare KV。之後 GitHub Actions 會先從 Cloudflare KV 取最新登入狀態，抓取成功後再寫回 KV。如果 BigModel 強制登出或要求重新驗證，重新跑 `npm run export:storage-state` 並更新 `BIGMODEL_STORAGE_STATE_GZ_B64` 即可。
 
 如果 GitHub 自帶 `schedule` 沒有準時跑，可以部署 Cloudflare Worker Cron 觸發器，不需要 VM：
 

@@ -9,10 +9,10 @@ https://zming061031.github.io/stockvue/dashboard.html
 For BigModel Coding Plan usage, the preferred setup is now GitHub Pages plus GitHub Actions:
 
 - GitHub Pages hosts the dashboard frontend.
-- GitHub Actions opens a temporary Playwright browser, reads the official BigModel usage page with your saved browser session, writes `usage-state.json`, refreshes the saved browser session secret when possible, and redeploys Pages.
+- GitHub Actions opens a temporary Playwright browser, reads the official BigModel usage page with your saved browser session, writes `usage-state.json`, refreshes the saved browser session in Cloudflare KV when possible, and redeploys Pages.
 - Cloudflare Worker Cron triggers the workflow every hour at UTC minute 07. GitHub's native schedule remains as a fallback because it can be delayed or skipped.
 
-No always-on Windows VM is required. The workflow now rotates the saved BigModel browser session after successful official-page captures. The tradeoff is that BigModel can still force a fresh login or reject GitHub's runner IP; if that happens, export and update the GitHub Secret again.
+No always-on Windows VM is required. The workflow now rotates the saved BigModel browser session after successful official-page captures through Cloudflare KV. The tradeoff is that BigModel can still force a fresh login or reject GitHub's runner IP; if that happens, export and update the GitHub Secret again.
 
 ## 1. Export BigModel browser session
 
@@ -36,11 +36,10 @@ Get-Content -LiteralPath "data\bigmodel-storage-state.json.gz.b64" -Raw |
   gh secret set BIGMODEL_STORAGE_STATE_GZ_B64 --repo zming061031/bigmodel-usage-monitor
 ```
 
-Set the secret-rotation token once so Actions can keep `BIGMODEL_STORAGE_STATE_GZ_B64` fresh after successful captures:
+Set the Cloudflare storage token once so Actions can read/write the latest login state from the Worker:
 
 ```powershell
-gh auth token |
-  gh secret set SESSION_ROTATION_TOKEN --repo zming061031/bigmodel-usage-monitor
+npm run cloudflare:install
 ```
 
 ## 2. GitHub Pages frontend
@@ -73,7 +72,7 @@ https://zming061031.github.io/bigmodel-usage-monitor/dashboard.html
 ## Automation behavior
 
 - BigModel capture: Cloudflare Cron triggers once per hour; GitHub schedule remains as fallback.
-- Saved official login state: refreshed automatically after successful captures via `SESSION_ROTATION_TOKEN`.
+- Saved official login state: refreshed automatically after successful captures through Cloudflare KV.
 - Dashboard data reload: every 5 minutes in the browser, while cloud capture remains hourly.
 - GitHub Pages deployment: every push to `main`.
 - API key/Header input: not shown on the website.
@@ -98,8 +97,9 @@ cloudflare-refresh-worker/src/worker.js
 ## Security
 
 - `usage-state.json` is public and contains usage data only.
-- `BIGMODEL_STORAGE_STATE_GZ_B64` is a GitHub Secret and contains BigModel browser login state. It is rotated automatically after successful cloud captures when `SESSION_ROTATION_TOKEN` is present.
-- `SESSION_ROTATION_TOKEN` is a GitHub Secret used only by the workflow to update `BIGMODEL_STORAGE_STATE_GZ_B64`. Do not expose it publicly.
+- `BIGMODEL_STORAGE_STATE_GZ_B64` is a GitHub Secret and contains the fallback BigModel browser login state.
+- Cloudflare KV stores the latest refreshed BigModel browser login state. GitHub Actions reads it before capture and writes it after successful capture.
+- `CLOUDFLARE_REFRESH_TOKEN` is a GitHub Secret used only by the workflow to authenticate with the Worker storage endpoint. Do not expose it publicly.
 - Cloudflare Worker mode stores a GitHub workflow-dispatch token as a Cloudflare secret. Do not expose it publicly.
 - Local BigModel browser login state is stored under:
 

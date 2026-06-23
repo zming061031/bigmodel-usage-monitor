@@ -7,6 +7,10 @@ preview_urls = false
 [triggers]
 crons = ["7 * * * *"]
 
+[[kv_namespaces]]
+binding = "BIGMODEL_STORAGE_KV"
+id = "4e00a00b79f640169e66d11c068b2575"
+
 [vars]
 GITHUB_OWNER = "zming061031"
 GITHUB_REPO = "bigmodel-usage-monitor"
