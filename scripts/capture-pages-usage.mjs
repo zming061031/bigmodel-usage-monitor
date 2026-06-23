@@ -56,7 +56,13 @@ async function main() {
   });
 
   try {
-    await page.goto(officialUrl, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    try {
+      await page.goto(officialUrl, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    } catch (error) {
+      if (!Object.keys(payloads).length) throw error;
+      console.log(`Official page navigation warning after usage responses started: ${error.name || 'Error'}`);
+    }
+
     await waitForPayloads(page, payloads);
 
     const snapshot = buildUsageSnapshotFromOfficialPayload(
