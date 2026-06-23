@@ -12,6 +12,7 @@ const outputPath = path.resolve(
 );
 const officialUrl = 'https://bigmodel.cn/coding-plan/team/usage-stats';
 const timeoutMs = Number(process.env.PAGES_CAPTURE_TIMEOUT_MS || 180_000);
+const refreshedStorageStatePath = String(process.env.PAGES_REFRESHED_STORAGE_STATE_GZ_B64_PATH || '').trim();
 const fiveMinutesMs = 5 * 60 * 1000;
 const oneHourMs = 60 * 60 * 1000;
 const fiveHoursMs = 5 * oneHourMs;
@@ -76,6 +77,7 @@ async function main() {
     }
 
     writeState(createState(snapshot));
+    await writeRefreshedStorageState(context);
     console.log(`Wrote ${path.relative(rootDir, outputPath)} with status=${snapshot.status}`);
   } finally {
     await browser.close();
@@ -99,6 +101,21 @@ function readStorageStateSecret() {
 
   const json = String(process.env.BIGMODEL_STORAGE_STATE_JSON || '').trim();
   return json || '';
+}
+
+async function writeRefreshedStorageState(context) {
+  if (!refreshedStorageStatePath) return;
+
+  const state = await context.storageState();
+  const gzipBase64 = zlib.gzipSync(Buffer.from(JSON.stringify(state), 'utf8')).toString('base64');
+
+  fs.mkdirSync(path.dirname(refreshedStorageStatePath), { recursive: true });
+  fs.writeFileSync(refreshedStorageStatePath, gzipBase64, {
+    encoding: 'utf8',
+    mode: 0o600
+  });
+
+  console.log('Wrote refreshed BigModel storage state for secret rotation.');
 }
 
 function isUsageResponse(url) {

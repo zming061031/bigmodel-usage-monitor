@@ -130,12 +130,13 @@ npm run service:uninstall
 
 ## 部署到雲端
 
-電腦關機也要繼續刷新時，可以用 GitHub Pages + GitHub Actions。GitHub Actions 已改成每小時 4 次排程，時間點是 UTC 的 07、22、37、52 分，用來避開 GitHub cron 高峰並抵消可能延遲或漏跑的情況；實際目標是讓網站大約一小時內一定更新。每次執行會開臨時瀏覽器，使用 GitHub Secret 裡保存的 BigModel 瀏覽器登入狀態，抓官方用量頁後重新部署 Pages。
+電腦關機也要繼續刷新時，可以用 GitHub Pages + GitHub Actions + Cloudflare Worker Cron。Cloudflare 每小時觸發一次 GitHub Actions；GitHub 自帶 schedule 仍保留作為備用。每次執行會開臨時瀏覽器，使用 GitHub Secret 裡保存的 BigModel 瀏覽器登入狀態，抓官方用量頁後重新部署 Pages。
 
 最接近 `https://zming061031.github.io/stockvue/dashboard.html` 的做法是：
 
 - GitHub Pages：永久網站前端，網址會像 `https://zming061031.github.io/bigmodel-usage-monitor/dashboard.html`
-- GitHub Actions：每小時 4 次嘗試抓 BigModel 官方頁並更新 `usage-state.json`，確保約一小時內會刷新
+- GitHub Actions：被 Cloudflare 每小時觸發，抓 BigModel 官方頁並更新 `usage-state.json`
+- Secret rotation：抓取成功後自動刷新 `BIGMODEL_STORAGE_STATE_GZ_B64`，盡量延長官方登入狀態
 
 完整步驟見 [PERMANENT_SITE.md](./PERMANENT_SITE.md)。
 
@@ -145,9 +146,12 @@ npm run service:uninstall
 npm run export:storage-state
 Get-Content -LiteralPath "data\bigmodel-storage-state.json.gz.b64" -Raw |
   gh secret set BIGMODEL_STORAGE_STATE_GZ_B64 --repo zming061031/bigmodel-usage-monitor
+
+gh auth token |
+  gh secret set SESSION_ROTATION_TOKEN --repo zming061031/bigmodel-usage-monitor
 ```
 
-如果 BigModel 讓 session 過期，重新跑上面兩行即可更新 Secret。
+`SESSION_ROTATION_TOKEN` 只用來讓 GitHub Actions 在抓取成功後更新 `BIGMODEL_STORAGE_STATE_GZ_B64`。如果 BigModel 強制登出或要求重新驗證，重新跑 `npm run export:storage-state` 並更新 `BIGMODEL_STORAGE_STATE_GZ_B64` 即可。
 
 如果 GitHub 自帶 `schedule` 沒有準時跑，可以部署 Cloudflare Worker Cron 觸發器，不需要 VM：
 

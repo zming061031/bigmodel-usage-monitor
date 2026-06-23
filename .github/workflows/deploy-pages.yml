@@ -28,6 +28,7 @@ jobs:
     timeout-minutes: 12
     env:
       HAS_BIGMODEL_STORAGE: ${{ secrets.BIGMODEL_STORAGE_STATE_GZ_B64 != '' || secrets.BIGMODEL_STORAGE_STATE_B64 != '' }}
+      HAS_SESSION_ROTATION_TOKEN: ${{ secrets.SESSION_ROTATION_TOKEN != '' }}
       BIGMODEL_STORAGE_STATE_GZ_B64: ${{ secrets.BIGMODEL_STORAGE_STATE_GZ_B64 }}
       BIGMODEL_STORAGE_STATE_B64: ${{ secrets.BIGMODEL_STORAGE_STATE_B64 }}
     steps:
@@ -53,6 +54,30 @@ jobs:
       - name: Capture BigModel usage
         if: ${{ env.HAS_BIGMODEL_STORAGE == 'true' }}
         run: npm run capture:pages
+        env:
+          PAGES_REFRESHED_STORAGE_STATE_GZ_B64_PATH: ${{ runner.temp }}/bigmodel-storage-state.gz.b64
+
+      - name: Rotate BigModel login state
+        if: ${{ env.HAS_BIGMODEL_STORAGE == 'true' && env.HAS_SESSION_ROTATION_TOKEN == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.SESSION_ROTATION_TOKEN }}
+          REFRESHED_STORAGE_STATE: ${{ runner.temp }}/bigmodel-storage-state.gz.b64
+        run: |
+          if [ ! -s "$REFRESHED_STORAGE_STATE" ]; then
+            echo "No refreshed storage state was produced."
+            exit 0
+          fi
+
+          gh secret set BIGMODEL_STORAGE_STATE_GZ_B64 \
+            --repo "$GITHUB_REPOSITORY" \
+            < "$REFRESHED_STORAGE_STATE"
+
+          rm -f "$REFRESHED_STORAGE_STATE"
+          echo "Rotated BigModel login state secret."
+
+      - name: Remove refreshed login state temp file
+        if: ${{ always() }}
+        run: rm -f "${{ runner.temp }}/bigmodel-storage-state.gz.b64"
 
       - name: Build
         run: npm run build
