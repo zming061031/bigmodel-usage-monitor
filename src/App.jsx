@@ -170,7 +170,7 @@ function QuotaCard({ card }) {
         <div className={`progress-fill ${tone}`} style={{ width: `${boundedPercentage}%` }} />
       </div>
       <p className="quota-card-reset">
-        重置時間：{card.limit?.resetAt ? formatDateTime(card.limit.resetAt) : '未返回'}
+        重置時間：{formatResetValue(card)}
       </p>
     </div>
   );
@@ -219,21 +219,38 @@ function findQuota(limits, kind) {
   if (kind === 'five-hour') {
     return limits.find((limit) => {
       const text = `${limit.label || ''} ${limit.type || ''}`.toUpperCase();
-      return !text.includes('WEEK') && !text.includes('周') && (text.includes('5') || text.includes('TOKEN'));
+      return (
+        (limit.periodUnit === 3 && limit.periodNumber === 5) ||
+        (!text.includes('WEEK') && !text.includes('周') && (text.includes('5') || text.includes('TOKEN')))
+      );
     });
   }
 
   if (kind === 'weekly') {
     return limits.find((limit) => {
       const text = `${limit.label || ''} ${limit.type || ''}`.toUpperCase();
-      return text.includes('WEEK') || text.includes('周');
+      return limit.periodUnit === 6 || text.includes('WEEK') || text.includes('周');
     });
   }
 
   return limits.find((limit) => {
     const text = `${limit.label || ''} ${limit.type || ''}`.toUpperCase();
-    return text.includes('MCP') || text.includes('TIME_LIMIT') || text.includes('TOOL');
+    return limit.periodUnit === 5 || text.includes('MCP') || text.includes('TIME_LIMIT') || text.includes('TOOL');
   });
+}
+
+function formatResetValue(card) {
+  const resetAt = card.limit?.resetAt;
+  if (!resetAt) return '未返回';
+  if (card.key === 'five-hour') return formatClockTime(resetAt);
+  return formatDateTime(resetAt) || String(resetAt);
+}
+
+function formatClockTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
 function formatDateTime(value) {

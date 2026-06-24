@@ -522,6 +522,8 @@ function normalizeQuota(payload) {
 
 function normalizeLimit(item, index) {
   const type = String(item.type || item.limitType || item.name || item.key || `limit-${index + 1}`);
+  const periodUnit = firstNumber(item, ['unit']);
+  const periodNumber = firstNumber(item, ['number']);
   const current = firstNumber(item, [
     'currentValue',
     'currentUsage',
@@ -554,6 +556,9 @@ function normalizeLimit(item, index) {
     percentage,
     current,
     total,
+    periodUnit,
+    periodNumber,
+    remaining: firstNumber(item, ['remaining']),
     unit: firstString(item, ['unit', 'unitName', 'metric']),
     resetAt: formatResetValue(
       firstDefined(item, ['resetAt', 'resetTime', 'endTime', 'expireAt', 'nextResetTime'])
