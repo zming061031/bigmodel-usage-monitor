@@ -35,7 +35,7 @@ try {
     npx wrangler secret bulk $secretFile
 
     Set-Content -LiteralPath $refreshTokenFile -Value $refreshToken -Encoding ASCII -NoNewline
-    Get-Content -Raw -LiteralPath $refreshTokenFile | gh secret set CLOUDFLARE_REFRESH_TOKEN --repo "zming061031/bigmodel-usage-monitor"
+    gh secret set CLOUDFLARE_REFRESH_TOKEN --repo "zming061031/bigmodel-usage-monitor" --body="$refreshToken"
   } finally {
     if (Test-Path -LiteralPath $secretFile) {
       Remove-Item -LiteralPath $secretFile -Force

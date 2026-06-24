@@ -88,15 +88,18 @@ jobs:
             exit 0
           fi
 
-          curl -fsS \
+          if curl -fsS \
             -X PUT \
             -H "x-refresh-token: $CLOUDFLARE_REFRESH_TOKEN" \
             --data-binary "@$REFRESHED_STORAGE_STATE" \
             "$STORAGE_STATE_URL" \
-            > /dev/null
+            > /dev/null; then
+            echo "Uploaded refreshed BigModel login state to Cloudflare KV."
+          else
+            echo "Cloudflare KV login state upload failed; continuing with published usage snapshot."
+          fi
 
           rm -f "$REFRESHED_STORAGE_STATE"
-          echo "Uploaded refreshed BigModel login state to Cloudflare KV."
 
       - name: Remove refreshed login state temp file
         if: ${{ always() }}
